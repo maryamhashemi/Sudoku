@@ -1,11 +1,11 @@
 import cv2
 import numpy as np
 import glob
-from Sudoku.Image_Processing import Image_Processing
+from matplotlib import pyplot as plt
 
 class SVM:
     
-    def resize_image(self, src_image, dst_image_height, dst_image_width):
+    def resize_image(self, src_image, dst_image_height = 32, dst_image_width = 32):
         src_image_height = src_image.shape[0]
         src_image_width = src_image.shape[1]
     
@@ -137,6 +137,24 @@ class SVM:
         
         return test_images,test_labels
 
+    def PreProcessingForSVM(self,image):        
+        #Convert the image to gray scale
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY) 
+        
+        # Image resizing.
+        image = self.resize_image(src_image=image)
+                       
+        # Image normalization.
+        image = image / 255
+                
+        # Image binarization.
+        image = np.where(image >= 0.5, 0, 1)
+        
+        plt.imshow(image,cmap='gray')
+        plt.show()
+        
+        return image
+    
     '''
         Find feature from train data
     '''    
@@ -241,33 +259,32 @@ class SVM:
         print(confusion_matrix)  
         print("mean accuracy = ", mean_accuracy)
 
+    def GetTrainedModel(self):
+    
+        svm = SVM();
+        print('Reading Train Data ...')
+        train_images, train_labels = svm.read_train_data()
+        
+        print('Reading Test Data ...')
+        test_images, test_labels = svm.read_test_data()
+        
+        print('Extracting hog feature from training samples ...')
+        hog_features = svm.feature_extractor(train_images)
+        
+        print('Training with svm ...')
+        model = svm.training(hog_features, train_labels)
+        
+        print('Extracting hog feature from testing samples ...')
+        hog_features = svm.feature_extractor(test_images)
+        
+        print('Testing ...')
+        prediction_label = svm.testing(model, hog_features)
+        
+        print('Evaluting ...')
+        svm.evalute(test_labels, prediction_label)
+        
+        print(prediction_label)
+        
+        return model
 
-def main():
-
-    svm = SVM();
-    print('Reading Train Data ...')
-    train_images, train_labels = svm.read_train_data()
-    
-    print('Reading Test Data ...')
-    test_images, test_labels = svm.read_test_data()
-    
-    print('Extracting hog feature from training samples ...')
-    hog_features = svm.feature_extractor(train_images)
-    
-    print('Training with svm ...')
-    model = svm.training(hog_features, train_labels)
-    
-    print('Extracting hog feature from testing samples ...')
-    hog_features = svm.feature_extractor(test_images)
-    
-    print('Testing ...')
-    prediction_label = svm.testing(model, hog_features)
-    
-    print('Evaluting ...')
-    svm.evalute(test_labels, prediction_label)
-    
-    print(prediction_label)
-
-if __name__ == "__main__":
-    main()
 

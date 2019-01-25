@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 import glob
 
-class SVM:
+class KNN:
     
     def resize_image(self, src_image, dst_image_height = 32, dst_image_width = 32):
         src_image_height = src_image.shape[0]
@@ -136,7 +136,7 @@ class SVM:
         
         return test_images,test_labels
 
-    def PreProcessingForSVM(self,image):        
+    def PreProcessingForKNN(self,image):        
         #Convert the image to gray scale
         image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY) 
         
@@ -148,7 +148,7 @@ class SVM:
                 
         # Image binarization.
         image = np.where(image >= 0.5, 0, 1)
-        
+
         return image
     
     '''
@@ -189,44 +189,26 @@ class SVM:
      Train the model
     '''
     def training(self,features, train_labels):
-        '''
-            Set up SVM for OpenCV 3
-        '''
-        svm = cv2.ml.SVM_create()
         
         '''
-            Set SVM type
-        '''    
-        svm.setType(cv2.ml.SVM_C_SVC)
+            Set up KNN for OpenCV 3
+        '''
+        knn = cv2.ml.KNearest_create()
         
         '''
-            Set SVM Kernel to Radial Basis Function (RBF) 
+            Train KNN on training data
         '''
-        svm.setKernel(cv2.ml.SVM_RBF)
-        
-        '''
-            Set parameter C
-        '''
-        svm.setC(1)
-        
-        '''
-            Set parameter Gamma
-        '''    
-        svm.setGamma(1)
-        
-        '''
-            Train SVM on training data
-        '''      
-        svm.train(features, cv2.ml.ROW_SAMPLE, train_labels)
-        
-        return svm
-
+        knn.train(features, cv2.ml.ROW_SAMPLE, train_labels)
+     
+        return knn   
+    
     '''
      Test the model
     '''
-    def testing(self,model,test_data):
-        testResponse = model.predict(test_data)[1].ravel()
-        return testResponse
+    def testing(self,knn,test_data):
+        
+        ret,result,neighbours,dist = knn.findNearest(test_data,k=5)
+        return result
 
     '''
         Evalute the model
@@ -257,27 +239,26 @@ class SVM:
 
     def GetTrainedModel(self):
     
-        svm = SVM();
         print('Reading Train Data ...')
-        train_images, train_labels = svm.read_train_data()
+        train_images, train_labels = self.read_train_data()
         
         print('Reading Test Data ...')
-        test_images, test_labels = svm.read_test_data()
+        test_images, test_labels = self.read_test_data()
         
         print('Extracting hog feature from training samples ...')
-        hog_features = svm.feature_extractor(train_images)
+        hog_features = self.feature_extractor(train_images)
         
         print('Training with svm ...')
-        model = svm.training(hog_features, train_labels)
+        model = self.training(hog_features, train_labels)
         
         print('Extracting hog feature from testing samples ...')
-        hog_features = svm.feature_extractor(test_images)
+        hog_features = self.feature_extractor(test_images)
         
         print('Testing ...')
-        prediction_label = svm.testing(model, hog_features)
+        prediction_label = self.testing(model, hog_features)
         
         print('Evaluting ...')
-        svm.evalute(test_labels, prediction_label)
+        self.evalute(test_labels, prediction_label)
         
         print(prediction_label)
         

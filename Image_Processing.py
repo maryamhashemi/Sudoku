@@ -2,11 +2,15 @@ import cv2
 from matplotlib import pyplot as plt
 import numpy as np
 from Sudoku.SVM import SVM
+from Sudoku.KNN import KNN
 
 class Image_Processing:
     
-    def __init__(self,model):
-        self.model = model
+    SudokoTableImage = []
+    
+    def __init__(self, modelName, model):
+        self.modelName = modelName
+        self.model = model      
         
     def FourCornersSort(self,pts):
         '''
@@ -49,7 +53,8 @@ class Image_Processing:
     def FindSudokuTable(self,edges,image):  
         
         MaxRect = self.FindMaxRectContours(edges, image)       
-        return self.CropSudokoTable(MaxRect, image)
+        self.SudokoTableImage = self.CropSudokoTable(MaxRect, image)
+        return self.SudokoTableImage
             
     def FindSudokuCells(self,image):
         
@@ -80,7 +85,10 @@ class Image_Processing:
                 '''
                 cell= image[(i*cell_width)+offset_width:((i+1)*cell_width)-offset_width,(j*cell_height)+offset_height:((j+1)*cell_height)-offset_height]       
                 if(self.ExistDigit(cell)):
-                    sudoku[i][j] = self.DigitRecognizer(cell)
+                    if(self.modelName == 'SVM'):
+                        sudoku[i][j] = self.DigitRecognizerSVM(cell)
+                    elif(self.modelName == 'KNN'):
+                        sudoku[i][j] = self.DigitRecognizerKNN(cell)
                                 
                 '''
                 display cell in Sudoku table
@@ -209,10 +217,47 @@ class Image_Processing:
         SudokuTable = self.FindSudokuTable(edges, img)
         return self.FindSudokuCells(SudokuTable)
     
-    def DigitRecognizer(self,image):
+    def DigitRecognizerSVM(self,image):
         svm = SVM()
         image = svm.PreProcessingForSVM(image)
         image = np.reshape(image,(1,32,32))
         hog_feature = svm.feature_extractor(image)
         return svm.testing(self.model, hog_feature)
+    
+    def DigitRecognizerKNN(self,image):
+        knn = KNN()
+        image = knn.PreProcessingForKNN(image)
+        image = np.reshape(image,(1,32,32))
+        hog_feature = knn.feature_extractor(image)
+        return knn.testing(self.model, hog_feature)
+
+    def DisplaySolution(self,grid):
+        '''
+            Find width and height of Sudoku table
+        '''
+        width, height , channels = self.SudokoTableImage.shape
         
+        '''
+            Calculate width and height of each cells in Sudoku table 
+        '''
+        cell_width = int(width / 9)
+        cell_height = int(height / 9)
+        
+        '''
+            Calculate offset to get smaller the cell
+        '''
+        offset_width = int(cell_width * 0.15)
+        offset_height = int(cell_height * 0.15)
+        
+        for i,x in zip(range(0,9),'ABCDEFGHI'):
+            for j,y in zip(range(0,9),'123456789'):
+                          
+                cell= self.SudokoTableImage[(i*cell_width)+offset_width:((i+1)*cell_width)-offset_width,(j*cell_height)+offset_height:((j+1)*cell_height)-offset_height]       
+                if(self.ExistDigit(cell) == False):                    
+                    '''
+                    display digits in Sudoku table
+                    '''   
+                    font = cv2.FONT_HERSHEY_SIMPLEX
+                    cv2.putText(self.SudokoTableImage,str(grid[x + str(y)]),((j*cell_height) + int(cell_height/2) - offset_height,(i*cell_width) + int(cell_width) - offset_width), font, 5,(255,255,0),5,cv2.LINE_AA)
+        
+        self.Display(self.SudokoTableImage) 

@@ -1,19 +1,19 @@
 class Sudoko_Solver:
     
     def __init__(self):
-        digits   = '123456789'
-        rows     = 'ABCDEFGHI'
-        cols     = digits
-        squares  = self.cross(rows, cols)
-        unitlist = ([self.cross(rows, c) for c in cols] +
-                    [self.cross(r, cols) for r in rows] +
+        self.digits   = '123456789'
+        self.rows     = 'ABCDEFGHI'
+        self.cols     = self.digits
+        self.squares  = self.cross(self.rows, self.cols)
+        self.unitlist = ([self.cross(self.rows, c) for c in self.cols] +
+                    [self.cross(r, self.cols) for r in self.rows] +
                     [self.cross(rs, cs) for rs in ('ABC','DEF','GHI') for cs in ('123','456','789')])
         
-        units = dict((s, [u for u in unitlist if s in u]) 
-                     for s in squares)
+        self.units = dict((s, [u for u in self.unitlist if s in u]) 
+                     for s in self.squares)
         
-        peers = dict((s, set(sum(units[s],[]))-set([s]))
-                     for s in squares)
+        self.peers = dict((s, set(sum(self.units[s],[]))-set([s]))
+                     for s in self.squares)
             
         self.test()
         
@@ -28,7 +28,7 @@ class Sudoko_Solver:
         "A set of unit tests."
         assert len(self.squares) == 81
         assert len(self.unitlist) == 27
-        assert all(self.len(self.units[s]) == 3 for s in self.squares)
+        assert all(len(self.units[s]) == 3 for s in self.squares)
         assert all(len(self.peers[s]) == 20 for s in self.squares)
         assert self.units['C2'] == [['A2', 'B2', 'C2', 'D2', 'E2', 'F2', 'G2', 'H2', 'I2'],
                                ['C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7', 'C8', 'C9'],
@@ -104,10 +104,14 @@ class Sudoko_Solver:
                           for c in self.cols))
             if r in 'CF': 
                 print (line)
-        print   
+        print()  
 
     def solve(self,grid): 
-        return self.search(self.parse_grid(grid))
+        grid = self.convertGridtoString(grid)
+        self.display(self.grid_values(grid))
+        grid = self.search(self.parse_grid(grid))
+        self.display(grid)
+        return grid
     
     '''
         Using depth-first search and propagation, try all possible values.
@@ -133,7 +137,14 @@ class Sudoko_Solver:
         return False   
 
 
-
+    def convertGridtoString(self,grid):
+        
+        strgrid = ''
+        for num in grid:
+            strgrid += str(num)
+            
+        return strgrid
+            
 
 
 

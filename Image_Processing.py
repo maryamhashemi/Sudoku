@@ -220,6 +220,7 @@ class Image_Processing:
     def DigitRecognizerSVM(self,image):
         svm = SVM()
         image = svm.PreProcessingForSVM(image)
+        self.Display(image)
         image = np.reshape(image,(1,32,32))
         hog_feature = svm.feature_extractor(image)
         return svm.testing(self.model, hog_feature)
@@ -227,6 +228,7 @@ class Image_Processing:
     def DigitRecognizerKNN(self,image):
         knn = KNN()
         image = knn.PreProcessingForKNN(image)
+        
         image = np.reshape(image,(1,32,32))
         hog_feature = knn.feature_extractor(image)
         return knn.testing(self.model, hog_feature)
@@ -258,6 +260,7 @@ class Image_Processing:
                     display digits in Sudoku table
                     '''   
                     font = cv2.FONT_HERSHEY_SIMPLEX
-                    cv2.putText(self.SudokoTableImage,str(grid[x + str(y)]),((j*cell_height) + int(cell_height/2) - offset_height,(i*cell_width) + int(cell_width) - offset_width), font, 5,(255,255,0),5,cv2.LINE_AA)
+                    scale = int(cell_height / 30)
+                    cv2.putText(self.SudokoTableImage,str(grid[x + str(y)]),((j*cell_height) + int(cell_height/2) - offset_height,(i*cell_width) + int(cell_width) - offset_width), font,scale,(255,255,0),5,cv2.LINE_AA)
         
         self.Display(self.SudokoTableImage) 

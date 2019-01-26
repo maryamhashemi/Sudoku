@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 import glob
+from matplotlib import pyplot as plt
 
 class SVM:
     
@@ -136,19 +137,26 @@ class SVM:
         
         return test_images,test_labels
 
-    def PreProcessingForSVM(self,image):        
+    def PreProcessingForSVM(self,image):
+        
+        plt.imshow(image,cmap='gray')
+        plt.show()
+                
         #Convert the image to gray scale
         image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY) 
         
         # Image resizing.
         image = self.resize_image(src_image=image)
-                       
+        
+                      
         # Image normalization.
         image = image / 255
                 
         # Image binarization.
         image = np.where(image >= 0.5, 0, 1)
         
+        #image = cv2.adaptiveThreshold(image,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,\
+        #           cv2.THRESH_BINARY_INV,11,10)
         return image
     
     '''

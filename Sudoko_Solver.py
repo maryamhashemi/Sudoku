@@ -110,9 +110,13 @@ class Sudoko_Solver:
         grid = self.convertGridtoString(grid)
         self.display(self.grid_values(grid))
         grid = self.search(self.parse_grid(grid))
-        self.display(grid)
-        return grid
-    
+        if(grid == False):
+            print("Not Solvable")
+            return False
+        else :
+            self.display(grid)
+            return grid
+        
     '''
         Using depth-first search and propagation, try all possible values.
     '''

@@ -30,9 +30,6 @@ class SVM:
     
         return dst_image  
 
-    '''
-        Read Train data and labels
-    '''  
     def read_train_data(self,images_height=32, images_width=32):
         
         # Find number of train images 
@@ -67,11 +64,9 @@ class SVM:
                 # Image resizing.
                 image = self.resize_image(src_image=image, dst_image_height=images_height, dst_image_width=images_width)
                 
-                # Image normalization.
-                image = image / 255
-                
                 # Image binarization.
-                image = np.where(image >= 0.5, 0, 1)
+                image = cv2.adaptiveThreshold(image,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,\
+                                              cv2.THRESH_BINARY_INV,9,20)
                 
                 # Image.
                 train_images[i] = image
@@ -83,10 +78,6 @@ class SVM:
         
         return train_images,train_labels
     
-      
-    '''
-        Read Test data and labels
-    '''
     def read_test_data(self, images_height=32, images_width=32):
         
     # Find number of train images 
@@ -121,11 +112,9 @@ class SVM:
                 # Image resizing.
                 image = self.resize_image(src_image=image, dst_image_height=images_height, dst_image_width=images_width)
                 
-                # Image normalization.
-                image = image / 255
-                
                 # Image binarization.
-                image = np.where(image >= 0.5, 0, 1)
+                image = cv2.adaptiveThreshold(image,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,\
+                                              cv2.THRESH_BINARY_INV,9,20)
                 
                 # Image.
                 test_images[i] = image
@@ -138,30 +127,19 @@ class SVM:
         return test_images,test_labels
 
     def PreProcessingForSVM(self,image):
-        
-        plt.imshow(image,cmap='gray')
-        plt.show()
                 
         #Convert the image to gray scale
         image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY) 
         
         # Image resizing.
         image = self.resize_image(src_image=image)
-        
-                      
-        # Image normalization.
-        image = image / 255
                 
         # Image binarization.
-        image = np.where(image >= 0.5, 0, 1)
+        image = cv2.adaptiveThreshold(image,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,\
+                                              cv2.THRESH_BINARY_INV,9,20)
         
-        #image = cv2.adaptiveThreshold(image,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,\
-        #           cv2.THRESH_BINARY_INV,11,10)
         return image
-    
-    '''
-        Find feature from train data
-    '''    
+     
     def feature_extractor(self, train_images):
         winSize = (32,32)
         blockSize = (14,14)
@@ -193,9 +171,6 @@ class SVM:
             
         return np.float32(descriptor) 
 
-    '''
-     Train the model
-    '''
     def training(self,features, train_labels):
         '''
             Set up SVM for OpenCV 3
@@ -229,16 +204,10 @@ class SVM:
         
         return svm
 
-    '''
-     Test the model
-    '''
     def testing(self,model,test_data):
         testResponse = model.predict(test_data)[1].ravel()
         return testResponse
 
-    '''
-        Evalute the model
-    '''
     def evalute(self,test_labels,prediction_label): 
         
         confusion_matrix = np.zeros((9,9),dtype = 'int')  
@@ -275,7 +244,7 @@ class SVM:
         print('Extracting hog feature from training samples ...')
         hog_features = svm.feature_extractor(train_images)
         
-        print('Training with svm ...')
+        print('Training with SVM ...')
         model = svm.training(hog_features, train_labels)
         
         print('Extracting hog feature from testing samples ...')
@@ -284,10 +253,8 @@ class SVM:
         print('Testing ...')
         prediction_label = svm.testing(model, hog_features)
         
-        print('Evaluting ...')
+        print('Evaluating ...')
         svm.evalute(test_labels, prediction_label)
-        
-        print(prediction_label)
         
         return model
 

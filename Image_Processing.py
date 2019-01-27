@@ -10,115 +10,34 @@ class Image_Processing:
     
     def __init__(self, modelName, model):
         self.modelName = modelName
-        self.model = model      
-        
-    def FourCornersSort(self,pts):
+        self.model = model  
+    
+    def ExtractSudokuTable(self,filename):  
         '''
-        Sort corners: top-left, bot-left, bot-right, top-right 
-        Inspired by http://www.pyimagesearch.com     
-        '''           
-        diff = np.diff(pts, axis=1)        
-        summ = pts.sum(axis=1)                     
-        return np.array([pts[np.argmin(summ)], pts[np.argmax(diff)], pts[np.argmax(summ)], pts[np.argmin(diff)]])
-        
-    def ExistDigit(self,Cell):
-        '''
-            Convert to Gray
-        '''
-        cell = cv2.cvtColor(Cell, cv2.COLOR_BGR2GRAY)  
-        
-        '''
-            Blur the cell
-        '''
-        cell = cv2.GaussianBlur(cell,(5,5),0) 
-        
-        '''
-            Binary the Image
+            Read Image from input
         ''' 
-        cell = cv2.adaptiveThreshold(cell,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,\
-                                    cv2.THRESH_BINARY,11,5)
+        img = cv2.imread(filename)
+        edges = self.FindEdges(img)      
+        SudokuTable = self.FindSudokuTable(edges, img)
+        return self.FindSudokuCells(SudokuTable)
     
-        '''
-            Find edges of cell
-        '''
-        edges = cv2.Canny(cell, 75, 200)                
-        im2, contours, hierarchy = cv2.findContours(edges, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-        for cnt in contours:               
-            (x, y, w, h) = cv2.boundingRect(cnt) 
-            if w >= 10 and h >= 10:
-                #cv2.drawContours(Cell, [cnt], -1, (255, 255, 0), 2)
-                return True
-        return False
-
-    def FindSudokuTable(self,edges,image):  
-        
-        MaxRect = self.FindMaxRectContours(edges, image)       
-        self.SudokoTableImage = self.CropSudokoTable(MaxRect, image)
-        return self.SudokoTableImage
-            
-    def FindSudokuCells(self,image):
-        
-        '''
-            Find width and height of Sudoku table
-        '''
-        width, height , channels = image.shape
-        
-        '''
-            Calculate width and height of each cells in Sudoku table 
-        '''
-        cell_width = int(width / 9)
-        cell_height = int(height / 9)
-        
-        '''
-            Calculate offset to get smaller the cell
-        '''
-        offset_width = int(cell_width * 0.15)
-        offset_height = int(cell_height * 0.15)
-        
-        sudoku = np.zeros(shape = (9,9), dtype=np.int32)
-        
-        for i in range(0,9):
-            for j in range(0,9):
-                
-                '''
-                    Find Cells
-                '''
-                cell= image[(i*cell_width)+offset_width:((i+1)*cell_width)-offset_width,(j*cell_height)+offset_height:((j+1)*cell_height)-offset_height]       
-                if(self.ExistDigit(cell)):
-                    if(self.modelName == 'SVM'):
-                        sudoku[i][j] = self.DigitRecognizerSVM(cell)
-                    elif(self.modelName == 'KNN'):
-                        sudoku[i][j] = self.DigitRecognizerKNN(cell)
-                                
-                '''
-                display cell in Sudoku table
-                '''   
-                cv2.rectangle(image,(i*cell_height,j*cell_width),((i+1)*cell_height,(j+1)*cell_width),(0,255,0),3)
-        
-        self.Display(image) 
-        return sudoku 
-    
-    def Display(self,img):
-        plt.imshow(img,cmap='gray')
-        plt.show()
-        
     def FindEdges(self,img): 
         '''
             Convert the image to gray scale
         '''
         img = gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)   
-        self.Display(img)
+        #self.Display(img)
         '''   
             Blur image
         '''
         img = cv2.GaussianBlur(img,(5,5),0)  
-        self.Display(img)
+        #self.Display(img)
         '''
             Binary image
         '''
         img = cv2.adaptiveThreshold(img,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,\
                     cv2.THRESH_BINARY,11,3)
-        self.Display(img)
+        #self.Display(img)
         '''
             Find Edges in Image
         '''
@@ -126,9 +45,15 @@ class Image_Processing:
         
         kernel = cv2.getStructuringElement(cv2.MORPH_CROSS,(3,3))
         edges = cv2.morphologyEx(edges, cv2.MORPH_DILATE, kernel)
-        self.Display(edges)
+        #self.Display(edges)
         
-        return edges    
+        return edges   
+    
+    def FindSudokuTable(self,edges,image):  
+        
+        MaxRect = self.FindMaxRectContours(edges, image)       
+        self.SudokoTableImage = self.CropSudokoTable(MaxRect, image)
+        return self.SudokoTableImage
     
     def FindMaxRectContours(self,edges,image): 
         '''
@@ -168,10 +93,19 @@ class Image_Processing:
                 pageContour = approx
                 
         cv2.drawContours(image, [pageContour], -1, (0, 255, 0), 2)
-        plt.imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
-        plt.show()
+        #plt.imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+        #plt.show()
         return pageContour
     
+    def FourCornersSort(self,pts):
+        '''
+        Sort corners: top-left, bot-left, bot-right, top-right 
+        Inspired by http://www.pyimagesearch.com     
+        '''           
+        diff = np.diff(pts, axis=1)        
+        summ = pts.sum(axis=1)                     
+        return np.array([pts[np.argmin(summ)], pts[np.argmax(diff)], pts[np.argmax(summ)], pts[np.argmin(diff)]])
+     
     def CropSudokoTable(self,MaxRect,image): 
         '''
             Sort corners 
@@ -208,19 +142,85 @@ class Image_Processing:
         newImage = cv2.warpPerspective(image, M, (int(width), int(height)))
         return newImage
     
-    def ExtractSudokuTable(self,filename):  
+    def FindSudokuCells(self,image):
+        
         '''
-            Read Image from input
+            Find width and height of Sudoku table
+        '''
+        width, height , channels = image.shape
+        
+        '''
+            Calculate width and height of each cells in Sudoku table 
+        '''
+        cell_width = int(width / 9)
+        cell_height = int(height / 9)
+        
+        '''
+            Calculate offset to get smaller the cell
+        '''
+        offset_width = int(cell_width * 0.15)
+        offset_height = int(cell_height * 0.15)
+        
+        sudoku = np.zeros(shape = (9,9), dtype=np.int32)
+        
+        for i in range(0,9):
+            for j in range(0,9):
+                
+                '''
+                    Find Cells
+                '''
+                cell= image[(i*cell_width)+offset_width:((i+1)*cell_width)-offset_width,(j*cell_height)+offset_height:((j+1)*cell_height)-offset_height]       
+                if(self.ExistDigit(cell)):
+                    if(self.modelName == 'SVM'):
+                        sudoku[i][j] = self.DigitRecognizerSVM(cell)
+                        
+                        
+                    elif(self.modelName == 'KNN'):
+                        sudoku[i][j] = self.DigitRecognizerKNN(cell)
+                        
+                                
+                '''
+                display cell in Sudoku table
+                '''   
+                cv2.rectangle(image,(i*cell_height,j*cell_width),((i+1)*cell_height,(j+1)*cell_width),(0,255,0),3)
+        
+        #self.Display(image) 
+        return sudoku 
+       
+    def ExistDigit(self,Cell):
+        '''
+            Convert to Gray
+        '''
+        cell = cv2.cvtColor(Cell, cv2.COLOR_BGR2GRAY)  
+        
+        '''
+            Blur the cell
+        '''
+        cell = cv2.GaussianBlur(cell,(5,5),0) 
+        
+        '''
+            Binary the Image
         ''' 
-        img = cv2.imread(filename)
-        edges = self.FindEdges(img)      
-        SudokuTable = self.FindSudokuTable(edges, img)
-        return self.FindSudokuCells(SudokuTable)
+        cell = cv2.adaptiveThreshold(cell,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,\
+                                    cv2.THRESH_BINARY,11,5)
     
+        '''
+            Find edges of cell
+        '''
+        edges = cv2.Canny(cell, 75, 200)                
+        im2, contours, hierarchy = cv2.findContours(edges, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        for cnt in contours:               
+            (x, y, w, h) = cv2.boundingRect(cnt) 
+            if w >= 10 and h >= 10:
+                #cv2.drawContours(Cell, [cnt], -1, (255, 255, 0), 2)
+                #plt.imshow(cv2.cvtColor(Cell, cv2.COLOR_BGR2RGB))
+                #plt.show()
+                return True
+        return False
+
     def DigitRecognizerSVM(self,image):
         svm = SVM()
         image = svm.PreProcessingForSVM(image)
-        self.Display(image)
         image = np.reshape(image,(1,32,32))
         hog_feature = svm.feature_extractor(image)
         return svm.testing(self.model, hog_feature)
@@ -264,3 +264,7 @@ class Image_Processing:
                     cv2.putText(self.SudokoTableImage,str(grid[x + str(y)]),((j*cell_height) + int(cell_height/2) - offset_height,(i*cell_width) + int(cell_width) - offset_width), font,scale,(255,255,0),5,cv2.LINE_AA)
         
         self.Display(self.SudokoTableImage) 
+        
+    def Display(self,img):
+        plt.imshow(img,cmap='gray')
+        plt.show()

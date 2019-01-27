@@ -2,8 +2,10 @@ from Sudoku.Image_Processing import Image_Processing
 from Sudoku.SVM import SVM
 from Sudoku.Sudoko_Solver import Sudoko_Solver
 from Sudoku.KNN import KNN
+from Sudoku.BruteForce import BruteForce
 import glob
 import numpy as np
+from datetime import datetime
 
 confusion_matrix = np.zeros((10,10),dtype = 'int')
 
@@ -38,21 +40,23 @@ def ReadDatFile(filename):
     
     
 knn = KNN()
-model = knn.GetTrainedModel()
+KNNmodel = knn.GetTrainedModel()
 
-#svm = SVM()
-#model = svm.GetTrainedModel()
+svm = SVM()
+SVMmodel = svm.GetTrainedModel()
 
 
 File_Path = './SudokuDateset/*.jpg'
 files = glob.glob(File_Path)
+TableNumber = len(files)
+SolveNumber = 0
 
+start_time = datetime.now()
 for filename in files:
-    
-    imgProc = Image_Processing('KNN', model)
+    print(filename)
+    imgProc = Image_Processing('KNN', KNNmodel)
     grid = imgProc.ExtractSudokuTable(filename)
     
-    print(grid)
     test_lables = ReadDatFile(filename)
     CalcConfusionMatrix(test_labels= test_lables, prediction_label= grid)
     
@@ -61,7 +65,43 @@ for filename in files:
     
     if(grid != False): 
         imgProc.DisplaySolution(grid)
-
+        SolveNumber +=1
+'''
+start_time = datetime.now()
+for filename in files:
+    print(filename)
+    imgProc = Image_Processing('SVM', SVMmodel)
+    grid = imgProc.ExtractSudokuTable(filename)
+    
+    test_lables = ReadDatFile(filename)
+    CalcConfusionMatrix(test_labels= test_lables, prediction_label= grid)
+    
+    if(filename != './SudokuDateset\Sudoku (87).jpg'):
+        solver = BruteForce(grid)
+        solution = solver.solve()
+        
+        if(solution != False): 
+            #imgProc.DisplaySolution(grid)
+            SolveNumber +=1
+'''  
+              
+print('Algorithm Time = ',  datetime.now() - start_time)        
+print('Confusion Matrix = ')
 print(confusion_matrix)
-print(CalcMeanAccuracy()) 
- 
+print()
+
+print('Mean Accuracy = ')
+print(CalcMeanAccuracy())
+print()
+
+print('Total Table = ')
+print(TableNumber)
+print()
+
+print('Solved Table = ')
+print(SolveNumber)
+print()
+
+print('Efficiency = ')
+print(SolveNumber / TableNumber) 
+print() 

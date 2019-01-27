@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 import glob
+from matplotlib import pyplot as plt
 
 class KNN:
     
@@ -29,9 +30,6 @@ class KNN:
     
         return dst_image  
 
-    '''
-        Read Train data and labels
-    '''  
     def read_train_data(self,images_height=32, images_width=32):
         
         # Find number of train images 
@@ -66,11 +64,9 @@ class KNN:
                 # Image resizing.
                 image = self.resize_image(src_image=image, dst_image_height=images_height, dst_image_width=images_width)
                 
-                # Image normalization.
-                image = image / 255
-                
-                # Image binarization.
-                image = np.where(image >= 0.5, 0, 1)
+                #Image binarization.
+                image = cv2.adaptiveThreshold(image,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,\
+                                            cv2.THRESH_BINARY_INV,9,20)
                 
                 # Image.
                 train_images[i] = image
@@ -78,14 +74,12 @@ class KNN:
                 # Label.
                 train_labels[i] = NumberClass
                 
+                #plt.imshow(image,cmap='gray')
+                #plt.show()
                 i = i+1
         
         return train_images,train_labels
     
-      
-    '''
-        Read Test data and labels
-    '''
     def read_test_data(self, images_height=32, images_width=32):
         
     # Find number of train images 
@@ -120,11 +114,9 @@ class KNN:
                 # Image resizing.
                 image = self.resize_image(src_image=image, dst_image_height=images_height, dst_image_width=images_width)
                 
-                # Image normalization.
-                image = image / 255
-                
                 # Image binarization.
-                image = np.where(image >= 0.5, 0, 1)
+                image = cv2.adaptiveThreshold(image,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,\
+                                              cv2.THRESH_BINARY_INV,9,20)
                 
                 # Image.
                 test_images[i] = image
@@ -136,24 +128,25 @@ class KNN:
         
         return test_images,test_labels
 
-    def PreProcessingForKNN(self,image):        
+    def PreProcessingForKNN(self,image): 
+               
         #Convert the image to gray scale
         image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY) 
         
+        #plt.imshow(image,cmap='gray')
+        #plt.show()
+        
         # Image resizing.
         image = self.resize_image(src_image=image)
-                       
-        # Image normalization.
-        image = image / 255
                 
         # Image binarization.
-        image = np.where(image >= 0.5, 0, 1)
-
+        image = cv2.adaptiveThreshold(image,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,\
+                                            cv2.THRESH_BINARY_INV,9,20)
+        
+        #plt.imshow(image,cmap='gray')
+        #plt.show()
         return image
-    
-    '''
-        Find feature from train data
-    '''    
+       
     def feature_extractor(self, train_images):
         winSize = (32,32)
         blockSize = (14,14)
@@ -185,9 +178,6 @@ class KNN:
             
         return np.float32(descriptor) 
 
-    '''
-     Train the model
-    '''
     def training(self,features, train_labels):
         
         '''
@@ -202,17 +192,11 @@ class KNN:
      
         return knn   
     
-    '''
-     Test the model
-    '''
     def testing(self,knn,test_data):
         
-        ret,result,neighbours,dist = knn.findNearest(test_data,k=5)
+        ret,result,neighbours,dist = knn.findNearest(test_data,k=3)
         return result
 
-    '''
-        Evalute the model
-    '''
     def evalute(self,test_labels,prediction_label): 
         
         confusion_matrix = np.zeros((9,9),dtype = 'int')  
@@ -238,29 +222,28 @@ class KNN:
         print("mean accuracy = ", mean_accuracy)
 
     def GetTrainedModel(self):
-    
+        
+        knn = KNN()
         print('Reading Train Data ...')
-        train_images, train_labels = self.read_train_data()
+        train_images, train_labels = knn.read_train_data()
         
         print('Reading Test Data ...')
-        test_images, test_labels = self.read_test_data()
+        test_images, test_labels = knn.read_test_data()
         
         print('Extracting hog feature from training samples ...')
-        hog_features = self.feature_extractor(train_images)
+        hog_features = knn.feature_extractor(train_images)
         
-        print('Training with svm ...')
-        model = self.training(hog_features, train_labels)
+        print('Training with KNN ...')
+        model = knn.training(hog_features, train_labels)
         
         print('Extracting hog feature from testing samples ...')
-        hog_features = self.feature_extractor(test_images)
+        hog_features = knn.feature_extractor(test_images)
         
         print('Testing ...')
-        prediction_label = self.testing(model, hog_features)
+        prediction_label = knn.testing(model, hog_features)
         
-        print('Evaluting ...')
+        print('Evaluating ...')
         self.evalute(test_labels, prediction_label)
-        
-        print(prediction_label)
         
         return model
 
